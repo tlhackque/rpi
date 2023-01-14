@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="$Id$"
+VERSION='$Id$'
 
 # Identify RPI model
 #
@@ -255,6 +255,8 @@ Usage:
     revinfo -h --help
             This help
 
+    revinfo --version
+
      Copyright 2017, 2023 Timothe Litt litt at acm ddot org
 
      Use at your own risk; otherwise unrestricted provided
@@ -262,6 +264,17 @@ Usage:
 EOF
 exit
 fi
+
+
+if [ "$1" == "-v" ] || [ "$1" == "--version" ]; then
+    if [[ "$VERSION" =~ ^'$''Id: '([[:xdigit:]]{4})([[:xdigit:]]{4})([[:xdigit:]]{4})([[:xdigit:]]{4})([[:xdigit:]]{4})([[:xdigit:]]{4})([[:xdigit:]]{4})([[:xdigit:]]{4})([[:xdigit:]]{4})([[:xdigit:]]{4})' $'$ ]]; then
+        printf "revinfo version %s-%s-%s-%s\n" "${BASH_REMATCH[-4]}" "${BASH_REMATCH[-3]}" "${BASH_REMATCH[-2]}" "${BASH_REMATCH[-1]}"
+        exit
+    fi
+    echo "revinfo version '$VERSION' - format error"
+    exit 1
+fi
+
 if [ -n "$1" ] && ! [[ "$1" =~ ^Beta|dump$ ]] && ! [[ "$1" =~ ^[[:xdigit:]]+$ ]] ; then
     echo "$1: not a command or a revision."
     exit 1
