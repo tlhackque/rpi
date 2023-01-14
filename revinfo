@@ -1,0 +1,284 @@
+#!/bin/bash
+
+VERSION="$Id$"
+
+# Identify RPI model
+#
+# Based on data from:
+#   https://www.element14.com/community/community/raspberry-pi/blog/2016/11/21/how-to-identify-which-model-of-the-raspberry-pi-you-have
+#   https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#raspberry-pi-revision-codes
+#
+# Copyright 2017, 2023 Timothe Litt litt at acm ddot org
+#
+# Use at your own risk; otherwise unrestricted provided
+# this notice is included in all copies.
+# 
+
+# Known revision codes
+
+declare -A revs nrevs
+
+# Old style codes
+
+revs=( [Beta]="Q1 2012|B(Beta)|?|256MB|Beta Board"
+       [0002]="Q1 2012|B|1.0|256MB|Mfg by Egoman"
+       [0003]="Q3 2012|B (ECN0001)|1.0|256MB|Fuses mod and D4 removed"
+       [0004]="Q3 2012|B|2.0|256MB|Mfg by Sony"
+       [0005]="Q4 2012|B|2.0|256MB|Mfg by Qisda"
+       [0006]="Q4 2012|B|2.0|256MB|Mfg by Egoman"
+       [0007]="Q1 2013|A|2.0|256MB|Mfg by Egoman"
+       [0008]="Q1 2013|A|2.0|256MB|Mfg by Sony"
+       [0009]="Q1 2013|A|2.0|256MB|Mfg by Qisda"
+       [000d]="Q4 2012|B|2.0|512MB|Mfg by Egoman"
+       [000e]="Q4 2012|B|2.0|512MB|Mfg by Sony"
+       [000f]="Q4 2012|B|2.0|512MB|Mfg by Qisda"
+       [0010]="Q3 2014|B+|1.0|512MB|Mfg by Sony"
+       [0011]="Q2 2014|Compute Module|1.0|512MB|Mfy by Sony"
+       [0012]="Q4 2014|A+|1.1|256MB|Mfg by Sony"
+       [0013]="Q1 2015|B+|1.2|512MB|Mfg by Embest"
+       [0014]="Q2 2014|Compute Module|1.0|512MB|Mfg by Embest"
+       [0015]="?|A+|1.1|256MB/512MB|Mfg by Embest"
+)
+
+# New style codes - for reference.  Incomplete, not used for decoding.
+
+nrevs=( [900021]="A+|1.1|512MB|Sony UK"
+        [900032]="B+|1.2|512MB|Sony UK"
+        [900092]="Zero|1.2|512MB|Sony UK"
+        [900093]="Zero|1.3|512MB|Sony UK"
+        [9000c1]="Zero W|1.1|512MB|Sony UK"
+        [9020e0]="3A+|1|512MB|Sony UK"
+        [920092]="Zero|1.2|512MB|Embest"
+        [920093]="Zero|1.3|512MB|Embest"
+        [900061]="CM1|1.1|512MB|Sony UK"
+        [a01040]="2B|1|1GB|Sony UK"
+        [a01041]="2B|1.1|1GB|Sony UK"
+        [a02082]="3B|1.2|1GB|Sony UK"
+        [a020a0]="CM3|1|1GB|Sony UK"
+        [a020d3]="3B+|1.3|1GB|Sony UK"
+        [a02042]="2B (with BCM2837)|1.2|1GB|Sony UK"
+        [a21041]="2B|1.1|1GB|Embest"
+        [a22042]="2B (with BCM2837)|1.2|1GB|Embest"
+        [a22082]="3B|1.2|1GB|Embest"
+        [a220a0]="CM3|1|1GB|Embest"
+        [a32082]="3B|1.2|1GB|Sony Japan"
+        [a52082]="3B|1.2|1GB|Stadium"
+        [a22083]="3B|1.3|1GB|Embest"
+        [a02100]="CM3+|1|1GB|Sony UK"
+        [a03111]="4B|1.1|1GB|Sony UK"
+        [b03111]="4B|1.1|2GB|Sony UK"
+        [b03112]="4B|1.2|2GB|Sony UK"
+        [b03114]="4B|1.4|2GB|Sony UK"
+        [b03115]="4B|1.5|2GB|Sony UK"
+        [c03111]="4B|1.1|4GB|Sony UK"
+        [c03112]="4B|1.2|4GB|Sony UK"
+        [c03114]="4B|1.4|4GB|Sony UK"
+        [c03115]="4B|1.5|4GB|Sony UK"
+        [d03114]="4B|1.4|8GB|Sony UK"
+        [d03115]="4B|1.5|8GB|Sony UK"
+        [c03130]="Pi 400|1|4GB|Sony UK"
+        [a03140]="CM4|1|1GB|Sony UK"
+        [b03140]="CM4|1|2GB|Sony UK"
+        [c03140]="CM4|1|4GB|Sony UK"
+        [d03140]="CM4|1|8GB|Sony UK"
+        [902120]="Zero 2 W|1|512MB|Sony UK"
+)
+
+# Fields in new style codes
+
+declare -A memsize mfg cpu models
+
+memsize=([0]="256MB"
+         [1]="512MB"
+	 [2]="1GB"
+	 [3]="2GB"
+	 [4]="4GB"
+	 [5]="8GB"
+)
+mfg=([0]="Sony UK"
+     [1]="Egoman"
+     [2]="Embest"
+     [3]="Sony Japan"
+     [4]="Embest"
+     [5]="Stadium"
+)
+cpu=(
+     [0]="BCM2835"
+     [1]="BCM2836"
+     [2]="BCM2837"
+     [3]="BCM2711"
+)
+models=(
+     [0]="A"
+     [1]="B"
+     [2]="A+"
+     [3]="B+"
+     [4]="2B"
+     [5]="Alpha (early prototype)"
+     [6]="CM1"
+     [8]="3B"
+     [9]="Zero"
+     [a]="CM3"
+     [c]="Zero W"
+     [d]="3B+"
+     [e]="3A+"
+     [f]="Internal use only"
+     [10]="CM3+"
+     [11]="4B"
+     [12]="Zero 2 W"
+     [13]="400"
+     [14]="CM4"
+     [15]="CM4S"
+)
+
+# Decode new style revisions
+
+function decode() {
+    local rev="0x$1" fields="$2"
+
+    # Decoder maps
+    # 00000000001111111111222222222233
+    # 01234567890123456789012345678901
+    # NOQuuuWuFMMMCCCCPPPPTTTTTTTTRRRR
+    # 33222222222211111111110000000000
+    # 10987654321098765432109876543210
+
+    # Field names
+    local N O Q uuu W u F MMM CCCC PPPP TTTTTTTT RRRR
+
+    # Convert to bit string for easy extraction
+    # the eval is to hide the left shift from broken syntax highlighters.
+
+    local bits="" i
+
+    for (( i=31; i>=0; --i )) ; do
+	eval 'if [[ $(( rev & ( 1 << i ) )) -ne 0 ]]; then bits="${bits}1" ; else  bits="${bits}0" ; fi'
+    done
+
+    # Extract fields.  Multi-bit as hex, except rev as decimal
+
+    N="${bits:0:1}"
+    O="${bits:1:1}"
+    Q="${bits:2:1}"
+    uuu="$(printf "%x" "$((2#${bits:3:3}))")"
+    W="${bits:6:1}"
+    u="${bits:7:1}"
+    F="${bits:8:1}"
+    MMM="$(printf "%x" "$((2#${bits:9:3}))")"
+    CCCC="$(printf "%x" "$((2#${bits:12:4}))")"
+    PPPP="$(printf "%x" "$((2#${bits:16:4}))")"
+    TTTTTTTT="$(printf "%x" "$((2#${bits:20:8}))")"
+    RRRR="$(printf "%u" "$((2#${bits:28:4}))")"
+
+    # Print the raw decode if requested
+
+    if [ -n "$fields" ]; then
+        printf "         %s\n" "$bits"
+	printf "%-08x N:%s O:%s Q:%s uuu:%s W:%s u:%s F:%s MMM:%s CCCC:%s PPPP:%s TTTTTTTT:%s RRRR:%s\n"\
+               "$rev" "$N" "$O" "$Q" "$uuu" "$W" "$u" "$F" "$MMM" "$CCCC" "$PPPP" "$TTTTTTTT" "$RRRR"
+    fi
+
+    # Decode fields to strings - if unknown, report as 0x<hex>
+
+    NOTES="${mfg["$CCCC"]}"
+    [ -z "$NOTES" ] && NOTES="Mfg 0x$CCCC"
+    [ "$N" == "1" ] && NOTES="$NOTES noOV"
+    [ "$O" == "1" ] && NOTES="$NOTES noOTP-wr"
+    [ "$Q" == "1" ] && NOTES="$NOTES noOTP-rd"
+    [ "$W" == "1" ] && NOTES="$NOTES noWarranty"
+
+    if [ -n "${models["$TTTTTTTT"]}" ]; then
+	TTTTTTTT="${models["$TTTTTTTT"]}"
+    else
+	TTTTTTTT="0x$TTTTTTTT"
+    fi
+    if [ -n "${cpu["$PPPP"]}" ]; then
+	PPPP="${cpu["$PPPP"]}"
+    else
+	PPPP="0x$PPPP"
+    fi
+    if [ -n "${memsize["$MMM"]}" ]; then
+	MMM="${memsize["$MMM"]}"
+    else
+	MMM="0x$MMM"
+    fi
+
+    # Table format
+
+    printf "%8s %-7s %-16s %-13s %-4s %-11s %s\n" \
+	"$1" "" "$TTTTTTTT" "($PPPP)" "1.$RRRR" "$MMM" "$NOTES"
+}
+
+function print_revision() {
+    local rev="$1" fields="$2"
+
+    if [ "$rev" == "Beta" ] || [[ $(( 0x$rev & 2#00000000100000000000000000000000 )) -eq 0 ]]; then
+	# Old style revision ( F is clear )
+	[ "$rev" != "Beta" ] && rev="$(printf "%04x" "0x$rev")"
+	if [ -n "${revs[$rev]}" ]; then
+	    IFS='|' read -ra RI <<< "${revs[$rev]}"
+
+	    printf "%8s %-7s %-32s %-4s %-11s %s\n" \
+		"$rev" "${RI[0]}" "${RI[1]}" "${RI[2]}" "${RI[3]}" "${RI[4]}"
+	else
+            printf "%-6s Unknown\n" "$rev"
+	fi
+    elif false && [ -n "${nrevs[$rev]}" ]; then
+	# Known new style revision from table (reference, debug)
+
+	IFS='|' read -ra RI <<< "${nrevs[$rev]}"
+
+	printf "%8s %-7s %-32s %-4s %-11s %s\n" \
+	    "$rev" "" "${RI[0]}" "${RI[1]}" "${RI[2]}" "${RI[3]}"
+    else
+	# Decode new style ( F is set )
+	decode "$rev" "$fields"
+    fi
+    return
+}
+
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+    cat <<EOF
+Usage:
+    revinfo
+            decodes system revision code from /proc/cpuinfo
+
+    revinfo revision_code [fields]
+            decodes (hex) raw revision code
+            with "fields", decodes fields
+
+    revinfo dump
+            prints table of known revisions
+            Note that the tables are incomplete, and starting
+            with the Pi 2, decoding does not table entries.
+
+    revinfo -h --help
+            This help
+
+     Copyright 2017, 2023 Timothe Litt litt at acm ddot org
+
+     Use at your own risk; otherwise unrestricted provided
+     this notice is included in all copies.
+EOF
+exit
+fi
+if [ -n "$1" ] && ! [[ "$1" =~ ^Beta|dump$ ]] && ! [[ "$1" =~ ^[[:xdigit:]]+$ ]] ; then
+    echo "$1: not a command or a revision."
+    exit 1
+fi
+
+printf "%-8s %-7s %-32s %-4s %-11s %s\n" \
+    "Revision" "R.Date" "Model" "PCB" "Mem" "Notes"
+
+if [ "$1" == "dump" ]; then
+    ( for rev in "${!revs[@]}" "${!nrevs[@]}"; do
+            print_revision "$rev"
+            done
+    ) | sort
+elif [ -n "$1" ]; then
+    print_revision "$1" "$2"
+else
+    declare -a pi_rev
+    IFS=$': \t' read -ra pi_rev <<<"$(grep 'Revision' /proc/cpuinfo)"
+    print_revision "${pi_rev[1]}"
+fi
