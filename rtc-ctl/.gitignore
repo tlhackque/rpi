@@ -1,0 +1,4 @@
+rtc-ctl
+*.o
+*.tar.gz
+rtc-ctl-*/*

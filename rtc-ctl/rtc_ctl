@@ -1,0 +1,75 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          rtc_ctl
+# Required-Start:    mountdevsubfs
+# Required-Stop:     $network $time
+# Default-Start:     S
+# X_Start-Before:    checkroot
+# Default-Stop:      0 6
+# Short-Description: DS1302 TOY initscript
+# Description:       At startup, sets system time from the TOY
+#                    At shutdown, sets the TOY from system time
+### END INIT INFO
+
+PATH=/sbin
+DESC="DS1302 TOY manager"
+NAME=rtc_ctl
+DAEMON=/sbin/$NAME
+DAEMON_ARGS="--update-time"
+SCRIPTNAME=/etc/init.d/rtc_ctl
+
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
+
+# Read configuration variable file if it is present
+
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
+# and status_of_proc is working.
+. /lib/lsb/init-functions
+
+do_start()
+{
+    $DAEMON $QUIET --update-time
+    return 0
+}
+
+do_stop()
+{
+    $DAEMON $QUIET --set-clock $SHUTDOWN_ARGS
+    return $?
+}
+
+[ "$VERBOSE" = "no" -a -z "$DEBUG" ] && QUIET=--quiet
+
+case "$1" in
+  start)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+        do_start
+        case "$?" in
+                0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+                2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+  stop)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+        do_stop
+        case "$?" in
+                0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+                2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+  status)
+	$DAEMON --read-clock && exit 0 || exit $?
+        ;;
+   *)
+        echo "Usage: $SCRIPTNAME {start|stop|status}" >&2
+        exit 3
+        ;;
+esac
+

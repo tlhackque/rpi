@@ -1,0 +1,63 @@
+rtc-ctl supports the calibration and use of DS1302 RTCs on the RPi.
+
+At this writing, boards with the DS1302 are available for about $2 USD,
+including battery. They interface to the RPi via 3 GPIO pins, which can
+be selected for local convenience (and to avoid other projects).
+
+No kernel driver is required.
+
+This program provides access to all of the chips features, including
+settng the TOY's time manually or from system time, setting system
+time from the TOY, accessing the battery backed-up RAM and other
+functions.  Note that although the user interface is run in local
+time, the chip is operated using UTC.  
+
+Compatible with "hwclock" commands for easy replacment in system
+scripts.
+
+With calibration, very good accuracy can be attained, as shown here:
+
+    rtc-ctl --show -d ; uptime; cat /etc/rtc-ctl.dat
+    TOY Clock registers as read (UTC):
+    81: 45 RUN 45 sec
+    83: 00     00 min
+    85: 10 24H 10 hr
+    87: 15     15 date
+    89: 01     01 month
+    8B: 01     01 weekday
+    8D: 23     23 year
+    8F: 80  WP ctl
+    Applying drift correction of -28.975 PPM to 72970038.913 seconds (844d 13h 27m 19s) elapsed
+    TOY    time is Sun Jan 15 2023 05:35:59     EST
+    System time is Sun Jan 15 2023 05:34:55.785 EST
+    Remaining offset is 63.215 sec (0.866 PPM)
+     05:34:55 up 33 days, 12:55,  1 user,  load average: 0.00, 0.02, 0.05
+    1600806806.087274313 (Tue Sep 22 2020 20:33:26.087 UTC)
+    -0.000028974891 (-28.975 PPM)
+    UTC
+
+The TOY includes a trickle charger for supercapacitors and some
+rechargeable batteries.  Study the hardware documentation before
+enabling it.  The charger is NOT suitable for battery types that
+require temperature monitoring, including NiCADs.  See the Maxim
+application notes.  Do not enable the charger without adequate
+hardware knowledge.  Misapplication can cause catastrophic failures.
+
+The associated Makefile will install this program on the standard
+Debian (Raspbian) distribution so that it runs at startup and shutdown,
+with hourly syncs to system time.
+
+The TOYeval.xls spreadsheet is provided to help with tracking drift.
+Directions for its user are in the spreadsheet.
+
+NTP, while not required, is highly recommended to provide a reference for
+calibration.
+
+rtc-ctl --help provides additional information.
+
+Bug reports, suggestions, patches at https://github.com/tlhackque/rpi
+Should the project move, contact the author (see rtc-ctl.c).
+
+This software is provided under GPL V2, including its disclaimer of
+warranty.  Licensing under other terms may be available from the author.
+
