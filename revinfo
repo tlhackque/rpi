@@ -264,6 +264,9 @@ Usage:
 
      Use at your own risk; otherwise unrestricted provided
      this notice is included in all copies.
+
+     Bug reports & contributions: https://github.com/tlhackque/rpi/issues
+
 EOF
 exit
 fi

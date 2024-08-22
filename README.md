@@ -13,3 +13,9 @@ setting the RTC, and accessing the clocks registers.
 Compatible with `hwclock` commands for easy replacment in system
 scripts.
 
+## gpstime
+
+Support for the MK3333/3339 GPS module, used by Adafruit GPS
+
+Allows basic configuration & setting system time from the module's
+RTC before NTP/network is available.
