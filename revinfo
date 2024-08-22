@@ -8,7 +8,7 @@ VERSION='$Id$'
 #   https://www.element14.com/community/community/raspberry-pi/blog/2016/11/21/how-to-identify-which-model-of-the-raspberry-pi-you-have
 #   https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#raspberry-pi-revision-codes
 #
-# Copyright 2017, 2023 Timothe Litt litt at acm ddot org
+# Copyright 2017, 2024 Timothe Litt litt at acm ddot org
 #
 # Use at your own risk; otherwise unrestricted provided
 # this notice is included in all copies.
@@ -107,6 +107,7 @@ cpu=(
      [1]="BCM2836"
      [2]="BCM2837"
      [3]="BCM2711"
+     [4]="BCM2712"
 )
 models=(
      [0]="A"
@@ -129,6 +130,8 @@ models=(
      [13]="400"
      [14]="CM4"
      [15]="CM4S"
+     [16]="Internal use only"
+     [17]="5"
 )
 
 # Decode new style revisions
@@ -257,7 +260,7 @@ Usage:
 
     revinfo --version
 
-     Copyright 2017, 2023 Timothe Litt litt at acm ddot org
+     Copyright 2017, 2024 Timothe Litt litt at acm ddot org
 
      Use at your own risk; otherwise unrestricted provided
      this notice is included in all copies.
