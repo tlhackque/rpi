@@ -3,21 +3,32 @@
 # Copyright (C) 2015 Timothe Litt litt at ddot acm dot org
 #
 # To build:
-#  The default build assumes the RTC is connected to the GPIOs below. To change:
+#  The default build with direct access assumes the RTC is connected to the GPIOs below. To change:
 #
 #    make "RTC_GPIOS=-D CE_PIN=RPI_GPIO_P1_16 -D CK_PIN=RPI_GPIO_P1_15 -D IO_PIN=RPI_GPIO_P1_22"
 #
-#  Pin names reflect RPi connector names, and vary by RPi version.
-#  For details, see rtc-ctl.h
+#   Pin names reflect RPi connector names, and vary by RPi version.
+#   For details, use --show-pins or see rtc-ctl.h
 #
-#  To omit NTP support (not recommended)
-#    make "RTC_OPTIONS=-DCHECK_NTP=0"
+#  When libgpiod is detected, the values are the pin NAMEs, as reported by
+#   --show-pins.  This code assumes that pin names are unique across all GPIO chips...
+#
+#     E.G. RTC_GPIOS='-D CE_PIN=GPIO23 -D CK_PIN=GPIO22 -D IO_PIN=GPIO25'
+#
+#  Additional build options go in RTC_OPTIONS, space separated:
+#
+#    To omit NTP support (not recommended)
+#      make "RTC_OPTIONS=-DCHECK_NTP=0"
+#
+#    To change the default calibration file, include -DCALIB_FILENAME=/etc/rtc-ctl.dat in RTC_OPTIONS.
 #
 #  Otherwise, simply
 #    make
 #    make install
 
 CPPFLAGS=
+
+LDFLAGS=
 
 # Include GPIO overrides
 
@@ -27,13 +38,28 @@ CPPFLAGS+=$(RTC_GPIOS)
 
 CPPFLAGS+=$(RTC_OPTIONS)
 
-# Compiler options
+# Compiler & linker options
 
-CFLAGS=-g -O2 -Wall -Woverflow -Wstrict-overflow -Wshadow -Wextra -pedantic
+CFLAGS=-g -O2 -Wall -Woverflow -Wstrict-overflow -Wshadow -Wextra -Winline -pedantic
+CFLAGS+=-std=c89
 
 LDLIBS=-lrt -lm
 
-LDFLAGS=
+# Check for libgpiod V2+
+GPIODCFG::=$(shell pkg-config --cflags libgpiod 2>/dev/null)
+GPIOD::=$(shell $(CPP) $(CPPFLAGS) $(GPIODCFG) libgpio_detect.c 2>/dev/null | \
+	grep 'gpiod_api_version' >/dev/null 2>&1 && \
+	printf '%s %s' "$(GPIODCFG)" "-DUSE_LIBGPIOD" || printf '')
+
+ifneq ($(strip $(GPIOD)),)
+CPPFLAGS+=$(GPIOD)
+GPIODLIBS::=$(shell pkg-config --libs libgpiod 2>/dev/null)
+ifeq ($(strip $(GPIODLIBS)),)
+GPIODLIBS::=-lgpiod
+else
+LDLIBS+=$(GPIODLIBS)
+endif
+endif
 
 # Utilities
 
@@ -42,7 +68,7 @@ TAR=tar
 
 # Files packaged in the distribution kit
 
-PACKAGED=README COPYING Makefile rtc_ctl rtc-ctl.c rtc-ctl.cron rtc-ctl.h TOYeval.xls
+PACKAGED=README COPYING Makefile libgpio_detect.c rtc_ctl rtc-ctl.c rtc-ctl.cron rtc-ctl.h TOYeval.xls
 
 .PHONY : all
 
@@ -57,7 +83,7 @@ rtc-ctl :
 
 # Object depends on makefile and header
 
-rtc-ctl.o : rtc-ctl.c rtc-ctl.h Makefile
+rtc-ctl.o : rtc-ctl.c rtc-ctl.h Makefile libgpio_detect.c
 
 # Install
 

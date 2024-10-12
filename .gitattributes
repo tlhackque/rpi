@@ -1,3 +1,5 @@
 .git*           export-ignore
 revinfo         export-subst ident
 gpstime         export-subst ident
+rtc-ctl/rtc-ctl.h export-subst ident
+rtc-ctl/rtc-ctl.c export-subst ident

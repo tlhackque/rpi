@@ -4,13 +4,35 @@ At this writing, boards with the DS1302 are available for about $2 USD,
 including battery. They interface to the RPi via 3 GPIO pins, which can
 be selected for local convenience (and to avoid other projects).
 
-No kernel driver is required.
+Some of these boards include pull-up resistors on the I/O lines.  These
+must be removed.  The DS1302 has internal pull-downs; pull-ups can cause
+data corruption.
+
+No kernel driver is required when the GPIO pins are directly accessed.
+This is known to work with the BCM2835, and NOT with the BCM2711.
+
+When libgpiod V2 is available, the kernel gpio driver is used.  This
+is required for newer RPi (and should support any board). Note:
+libgpiod V1 has an incompatible API.  V2 is not currently packaged.
+To install in /usr/local (requires kernel 4.6 (4.8? with CONFIG_GPIOLIB).:
+ apt-get install autoconf autoconf-archive libtool git git-gui
+ git clone git://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git libgpiod
+ autoupdate
+ ./autogen.sh --enable-tools=yes --prefix=/usr/local
+ cd libgpiod; make && make install
+The rtc-ctl Makefile will detect a V2 installation and use it.
+The selected I/O pins need not be on the same "Chip", but must have unique
+names.  To use non-default GPIO pins, see the Makefile.
 
 This program provides access to all of the chips features, including
 settng the TOY's time manually or from system time, setting system
 time from the TOY, accessing the battery backed-up RAM and other
 functions.  Note that although the user interface is run in local
-time, the chip is operated using UTC.  
+time, the chip is operated using UTC.
+
+After installing the clock, the --test-ram command is a recommended
+to verify the interface & chip.  Note that --test-ram does not preserve
+existing meory contents.  If successful, the ram is cleared.
 
 Compatible with "hwclock" commands for easy replacment in system
 scripts.

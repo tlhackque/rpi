@@ -1,7 +1,7 @@
 #ifndef RTC_CTL_H
 #define RTC_CTL_H
 
-/* Copyright (c) 2015 Timothe Litt litt at acm ddot org
+/* Copyright (c) 2015-2024 Timothe Litt litt at acm ddot org
  * All rights reserved.
  *
  * This software is provided under GPL V2, including its disclaimer of
@@ -16,6 +16,7 @@
 #ifdef __TIMESTAMP__
 static const char rtc_ctl_h_version[] = __TIMESTAMP__;
 #endif
+static const char *const rtc_ctl_h_gitid = "$Id$";
 
 /* Calibration data file
  */
@@ -28,7 +29,7 @@ static const char rtc_ctl_h_version[] = __TIMESTAMP__;
  * RPi 2 has it, RPi 1 (A, B, B+) do not.
  */
 
-#if !( defined(__ARM_ARCH_6__) && !defined( __ARM_ARCH_7__ ) )
+#if !( defined(__ARM_ARCH_6__) ) && ( (defined __ARM_ARCH && __ARM_ARCH >= 7 ) || defined( __ARM_ARCH_7__ ) )
 #  define HAVE_DMB
 #endif
 
@@ -65,6 +66,22 @@ static const char rtc_ctl_h_version[] = __TIMESTAMP__;
 #  define __attribute__(x)
 #endif
 
+/* Use gpiod library if detected - direct access will not work on newer Rpi models */
+/* This requires libgpiod V2.x (the 1.x api differs and is going away.
+ * At this writing, V2 is not provided on Debian or by the Rpi foundation.
+ *
+ * apt-get install autoconf autoconf-archive libtool git git-gui
+ * git clone git://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git libgpiod
+ * autoupdate
+ * ./autogen.sh --enable-tools=yes --prefix=/usr/local
+ * cd libgpiod; make && make install
+ *
+ */
+#ifdef USE_LIBGPIOD
+#include <gpiod.h>
+
+#else
+/* Use only if gpiod (apt-get libgpiod-dev) can't be installed */
 
 #define TIMER_BASE_OFFSET  0x00003000
 #define GPIO_BASE_OFFSET   0x00200000
@@ -131,6 +148,7 @@ typedef enum { /* PUD values. *ONE* 32-bit register, pudclk selects pins that ge
  *
  * If you are using the RPi Compute Module, use the GPIO number: these don't apply.
  */
+#if 0
 typedef enum {
     GPIO_P1_03        =  0,  /* Version 1, Pin P1-03 */
     GPIO_P1_05        =  1,  /* Version 1, Pin P1-05 */
@@ -203,19 +221,103 @@ typedef enum {
     BPLUS_GPIO_J8_38  = 20,  /* B+, Pin J8-38,  */
     BPLUS_GPIO_J8_40  = 21   /* B+, Pin J8-40,  */
 } RPiGPIOPin;
+#endif
+
+#define PINSYM(name,num, desc) { #name, num, desc }
+typedef struct {
+    const char *sym;
+    const unsigned int num;
+    const char *desc;
+} pinsym_t;
+
+static pinsym_t gpio_pins[] = {
+    PINSYM( GPIO_P1_03       , 0, "Version 1, Pin P1-03" ),
+    PINSYM( GPIO_P1_05       , 1, "Version 1, Pin P1-05" ),
+    PINSYM( GPIO_P1_07       , 4, "Version 1, Pin P1-07" ),
+    PINSYM( GPIO_P1_08       ,14, "Version 1, Pin P1-08, defaults to alt function 0 UART0_TXD" ),
+    PINSYM( GPIO_P1_10       ,15, "Version 1, Pin P1-10, defaults to alt function 0 UART0_RXD" ),
+    PINSYM( GPIO_P1_11       ,17, "Version 1, Pin P1-11" ),
+    PINSYM( GPIO_P1_12       ,18, "Version 1, Pin P1-12, can be PWM channel 0 in ALT FUN 5" ),
+    PINSYM( GPIO_P1_13       ,21, "Version 1, Pin P1-13" ),
+    PINSYM( GPIO_P1_15       ,22, "Version 1, Pin P1-15" ),
+    PINSYM( GPIO_P1_16       ,23, "Version 1, Pin P1-16" ),
+    PINSYM( GPIO_P1_18       ,24, "Version 1, Pin P1-18" ),
+    PINSYM( GPIO_P1_19       ,10, "Version 1, Pin P1-19, MOSI when SPI0 in use" ),
+    PINSYM( GPIO_P1_21       , 9, "Version 1, Pin P1-21, MISO when SPI0 in use" ),
+    PINSYM( GPIO_P1_22       ,25, "Version 1, Pin P1-22" ),
+    PINSYM( GPIO_P1_23       ,11, "Version 1, Pin P1-23, CLK when SPI0 in use" ),
+    PINSYM( GPIO_P1_24       , 8, "Version 1, Pin P1-24, CE0 when SPI0 in use" ),
+    PINSYM( GPIO_P1_26       , 7, "Version 1, Pin P1-26, CE1 when SPI0 in use" ),
+
+    /* RPi Version 2 */
+    PINSYM( V2_GPIO_P1_03    , 2, "Version 2, Pin P1-03" ),
+    PINSYM( V2_GPIO_P1_05    , 3, "Version 2, Pin P1-05" ),
+    PINSYM( V2_GPIO_P1_07    , 4, "Version 2, Pin P1-07" ),
+    PINSYM( V2_GPIO_P1_08    ,14, "Version 2, Pin P1-08, defaults to alt function 0 UART0_TXD" ),
+    PINSYM( V2_GPIO_P1_10    ,15, "Version 2, Pin P1-10, defaults to alt function 0 UART0_RXD" ),
+    PINSYM( V2_GPIO_P1_11    ,17, "Version 2, Pin P1-11" ),
+    PINSYM( V2_GPIO_P1_12    ,18, "Version 2, Pin P1-12, can be PWM channel 0 in ALT FUN 5" ),
+    PINSYM( V2_GPIO_P1_13    ,27, "Version 2, Pin P1-13" ),
+    PINSYM( V2_GPIO_P1_15    ,22, "Version 2, Pin P1-15" ),
+    PINSYM( V2_GPIO_P1_16    ,23, "Version 2, Pin P1-16" ),
+    PINSYM( V2_GPIO_P1_18    ,24, "Version 2, Pin P1-18" ),
+    PINSYM( V2_GPIO_P1_19    ,10, "Version 2, Pin P1-19, MOSI when SPI0 in use" ),
+    PINSYM( V2_GPIO_P1_21    , 9, "Version 2, Pin P1-21, MISO when SPI0 in use" ),
+    PINSYM( V2_GPIO_P1_22    ,25, "Version 2, Pin P1-22" ),
+    PINSYM( V2_GPIO_P1_23    ,11, "Version 2, Pin P1-23, CLK when SPI0 in use" ),
+    PINSYM( V2_GPIO_P1_24    , 8, "Version 2, Pin P1-24, CE0 when SPI0 in use" ),
+    PINSYM( V2_GPIO_P1_26    , 7, "Version 2, Pin P1-26, CE1 when SPI0 in use" ),
+
+    /* RPi Version 2, new plug P5 */
+    PINSYM( V2_GPIO_P5_03    ,28, "Version 2, Pin P5-03" ),
+    PINSYM( V2_GPIO_P5_04    ,29, "Version 2, Pin P5-04" ),
+    PINSYM( V2_GPIO_P5_05    ,30, "Version 2, Pin P5-05" ),
+    PINSYM( V2_GPIO_P5_06    ,31, "Version 2, Pin P5-06" ),
+
+    /* RPi B+ J8 header */
+    PINSYM( BPLUS_GPIO_J8_03 , 2, "B+, Pin J8-03" ),
+    PINSYM( BPLUS_GPIO_J8_05 , 3, "B+, Pin J8-05" ),
+    PINSYM( BPLUS_GPIO_J8_07 , 4, "B+, Pin J8-07" ),
+    PINSYM( BPLUS_GPIO_J8_08 ,14, "B+, Pin J8-08, defaults to alt function 0 UART0_TXD" ),
+    PINSYM( BPLUS_GPIO_J8_10 ,15, "B+, Pin J8-10, defaults to alt function 0 UART0_RXD" ),
+    PINSYM( BPLUS_GPIO_J8_11 ,17, "B+, Pin J8-11" ),
+    PINSYM( BPLUS_GPIO_J8_12 ,18, "B+, Pin J8-12, can be PWM channel 0 in ALT FUN 5" ),
+    PINSYM( BPLUS_GPIO_J8_13 ,27, "B+, Pin J8-13" ),
+    PINSYM( BPLUS_GPIO_J8_15 ,22, "B+, Pin J8-15" ),
+    PINSYM( BPLUS_GPIO_J8_16 ,23, "B+, Pin J8-16" ),
+    PINSYM( BPLUS_GPIO_J8_18 ,24, "B+, Pin J8-18" ),
+    PINSYM( BPLUS_GPIO_J8_19 ,10, "B+, Pin J8-19, MOSI when SPI0 in use" ),
+    PINSYM( BPLUS_GPIO_J8_21 , 9, "B+, Pin J8-21, MISO when SPI0 in use" ),
+    PINSYM( BPLUS_GPIO_J8_22 ,25, "B+, Pin J8-22" ),
+    PINSYM( BPLUS_GPIO_J8_23 ,11, "B+, Pin J8-23, CLK when SPI0 in use" ),
+    PINSYM( BPLUS_GPIO_J8_24 , 8, "B+, Pin J8-24, CE0 when SPI0 in use" ),
+    PINSYM( BPLUS_GPIO_J8_26 , 7, "B+, Pin J8-26, CE1 when SPI0 in use" ),
+    PINSYM( BPLUS_GPIO_J8_29 , 5, "B+, Pin J8-29" ),
+    PINSYM( BPLUS_GPIO_J8_31 , 6, "B+, Pin J8-31" ),
+    PINSYM( BPLUS_GPIO_J8_32 ,12, "B+, Pin J8-32" ),
+    PINSYM( BPLUS_GPIO_J8_33 ,13, "B+, Pin J8-33" ),
+    PINSYM( BPLUS_GPIO_J8_35 ,19, "B+, Pin J8-35" ),
+    PINSYM( BPLUS_GPIO_J8_36 ,16, "B+, Pin J8-36" ),
+    PINSYM( BPLUS_GPIO_J8_37 ,26, "B+, Pin J8-37" ),
+    PINSYM( BPLUS_GPIO_J8_38 ,20, "B+, Pin J8-38" ),
+    PINSYM( BPLUS_GPIO_J8_40 ,21, "B+, Pin J8-40" )
+};
+
+#define PINSIZE sizeof( gpio_pins[0] )
+#define NPINS ( sizeof( gpio_pins ) / PINSIZE )
 
 /* Memory barrier. */
 
 extern __inline__  __attribute__((always_inline)) void MB( void ) {
 #ifdef HAVE_DMB
-	__asm__( "dmb" : : : "memory" );
+        __asm__( "dmb sy" : : : "memory" );
 #else
-	__asm__(              "\
+        __asm__(              "\
   mov r10,#0                 \n\
   mcr p15,0,r10, c7, c10, 5  \n\
   " : : : "r10", "memory" );
 #endif
-	return;
+        return;
 }
 
 /* Read register (with memory barriers)
@@ -225,40 +327,40 @@ extern __inline__  __attribute__((always_inline)) uint32_t RDREG( volatile uint3
     uint32_t ret;
 
 #ifdef HAVE_DMB
-	__asm__(        "\
-  dmb                    \
-  ldr %[ret], [%[paddr]] \
-  dmb                    \
+        __asm__(        "\
+  dmb sy                \n\
+  ldr %[ret], [%[paddr]]\n\
+  dmb sy                \n\
 " : [ret] "=r" (ret) : [paddr] "r" (paddr) : "memory" );
 #else
-	__asm__(            "\
+        __asm__(            "\
   mov r10,#0               \n\
   mcr p15,0,r10, c7, c10, 5\n\
   ldr %[ret], [%[paddr]]   \n\
   mcr p15,0,r10, c7, c10, 5\n\
 " : [ret] "=r" (ret) : [paddr] "r" (paddr) : "r10", "memory" );
 #endif
-	return ret;
+        return ret;
 }
 
 /* Write register (with memory barriers) */
 
 extern __inline__  __attribute__((always_inline)) void WRREG( volatile uint32_t *paddr, uint32_t value ) {
 #ifdef HAVE_DMB
-	__asm__(          "\
-  dmb                      \
-  str %[value], [%[paddr]] \
-  dmb                      \
+        __asm__(          "\
+  dmb sy                  \n\
+  str %[value], [%[paddr]]\n\
+  dmb sy                  \n\
 " : : [paddr] "r" (paddr), [value] "r" (value) : "memory" );
 #else
-	__asm__(            "\
+        __asm__(            "\
   mov r10,#0               \n\
   mcr p15,0,r10, c7, c10, 5\n\
   str %[value], [%[paddr]] \n\
   mcr p15,0,r10, c7, c10, 5\n\
 " : : [paddr] "r" (paddr), [value] "r" (value) : "r10", "memory" );
 #endif
-	return;
+        return;
 }
 
 /* GPIO data manipulation.
@@ -274,10 +376,10 @@ extern __inline__  __attribute__((always_inline)) void WRREG( volatile uint32_t 
 #define GPIO_SET( pin ) WRREG( &gpio->set[((pin) & 0x20)? 1: 0], (1 << ((pin) & 0x1F)) )
 #define GPIO_CLR( pin ) WRREG( &gpio->clr[((pin) & 0x20)? 1: 0], (1 << ((pin) & 0x1F)) )
 #define GPIO_SET_TO( pin, value ) do { \
-	if( value )                    \
-	    GPIO_SET( pin );	       \
-	else                           \
-	    GPIO_CLR( pin ); } while( 0 )
+        if( value )                    \
+            GPIO_SET( pin );           \
+        else                           \
+            GPIO_CLR( pin ); } while( 0 )
 #define GPIO_IS_SET( pin ) (RDREG( &gpio->level[((pin) & 0x20)? 1: 0] ) & (1 << ((pin) & 0x1F)))
 
 /* Macros where user is responsible for barriers.
@@ -292,17 +394,18 @@ extern __inline__  __attribute__((always_inline)) void WRREG( volatile uint32_t 
  */
 
 #define NB_GPIO_SET( pin ) do { \
-	gpio->set[((pin) & 0x20)? 1: 0] = 1 << ((pin) & 0x1F);	\
+        gpio->set[((pin) & 0x20)? 1: 0] = 1 << ((pin) & 0x1F);  \
     } while( 0 )
 #define NB_GPIO_CLR( pin ) do { \
-	gpio->clr[((pin) & 0x20)? 1: 0] = 1 << ((pin) & 0x1F);	\
+        gpio->clr[((pin) & 0x20)? 1: 0] = 1 << ((pin) & 0x1F);  \
     } while( 0 )
 #define NB_GPIO_SET_TO( pin, value ) do { \
-	if( value )                       \
-	    NB_GPIO_SET( pin );           \
-	else                              \
-	    NB_GPIO_CLR( pin );           \
+        if( value )                       \
+            NB_GPIO_SET( pin );           \
+        else                              \
+            NB_GPIO_CLR( pin );           \
     } while( 0 )
 #define NB_GPIO_IS_SET( pin ) (gpio->level[((pin) & 0x20)? 1: 0] & (1 << ((pin) & 0x1F)))
+#endif
 
 #endif
